@@ -33,15 +33,16 @@ export default function App() {
     formData.append("file", file);
     try {
       const res = await fetch(`${API_BASE}/upload`, { method: "POST", body: formData });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Upload failed (${res.status})`);
       setUploadDone(true);
       setUploadInfo(data);
       setMessages([{
         role: "system",
         text: `"${file.name}" uploaded — ${data.chunks_stored} chunks indexed. Ask me anything about it.`
       }]);
-    } catch {
-      alert("Upload failed. Make sure your FastAPI server is running on port 8000.");
+    } catch (error) {
+      alert(error.message || "Upload failed. Make sure the backend is available.");
     } finally {
       setUploading(false);
     }
@@ -59,10 +60,11 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Request failed (${res.status})`);
       setMessages(prev => [...prev, { role: "assistant", text: data.answer }]);
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", text: "Error: Could not reach the server." }]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: "assistant", text: `Error: ${error.message || "Could not reach the server."}` }]);
     } finally {
       setAsking(false);
     }
